@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 # native
-from app.domain.message_brokers import MessageBroker
-from app.infrastructure.util.config import AppConfig
+from domain.message_brokers import MessageBroker
+from infrastructure.util.config import AppConfig
 
 
 class KafkaBroker(MessageBroker):

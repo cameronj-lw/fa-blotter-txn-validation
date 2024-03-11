@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 # native
-from app.domain.events import Event
+from domain.events import Event
 
 
 class EventHandler(ABC):
