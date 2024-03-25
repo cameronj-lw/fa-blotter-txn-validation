@@ -18,4 +18,11 @@ class TransactionValidator:
             if rule.is_broken(transaction):
                 raise TransactionValidationRuleBrokenException(rule, transaction)
 
+    @property
+    def cn(self):  # Class name. Avoids having to print/log type(self).__name__.
+        return type(self).__name__
+    
+    def __str__(self):
+        return f"{self.cn}, validating transaction rules: {', '.join([str(vr) for vr in self.rules])}"
+
 

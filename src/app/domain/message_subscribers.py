@@ -15,4 +15,7 @@ class MessageSubscriber(ABC):
     topics: List[str]
     event_handler: Type[EventHandler]
 
+    @property
+    def cn(self):  # Class name. Avoids having to print/log type(self).__name__.
+        return type(self).__name__
 
