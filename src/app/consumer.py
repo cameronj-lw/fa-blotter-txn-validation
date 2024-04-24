@@ -11,9 +11,11 @@ sys.path.append(src_dir)
 
 # native
 from application.event_handlers import TransactionEventHandler
-from application.validation_rules import TransactionQuantityMax100
+from application.validation_rules import TransactionQuantityMax100, TransactionPostedAfterBlotterSent
 from application.validators import TransactionValidator
+from infrastructure.file_repositories import FABlotterV1BlotterRepository
 from infrastructure.message_subscribers import KafkaAPXTransactionMessageConsumer
+from infrastructure.services import MSTeamsAlertService
 from infrastructure.sql_repositories import MGMTDBHeartbeatRepository
 from infrastructure.util.config import AppConfig
 from infrastructure.util.logging import setup_logging
@@ -31,7 +33,11 @@ def main():
     kafka_consumer = KafkaAPXTransactionMessageConsumer(
         event_handler = TransactionEventHandler(
             validator=TransactionValidator([
-                TransactionQuantityMax100()
+                TransactionQuantityMax100(),
+                TransactionPostedAfterBlotterSent(
+                    blotter_repo=FABlotterV1BlotterRepository(),
+                    fail_alert_services=[MSTeamsAlertService(AppConfig().get('transaction_posted_after_blotter_sent', 'ms_teams_webhook_url'))]
+                )
             ])
         )
         , heartbeat_repo = MGMTDBHeartbeatRepository()

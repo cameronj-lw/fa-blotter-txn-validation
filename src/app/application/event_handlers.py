@@ -12,6 +12,7 @@ from domain.event_handlers import EventHandler
 from domain.events import (Event, TransactionCreatedEvent, TransactionUpdatedEvent, TransactionDeletedEvent
     , TransactionCommentCreatedEvent, TransactionCommentUpdatedEvent, TransactionCommentDeletedEvent
 )
+from domain.models import Alert
 
 
 
@@ -49,7 +50,9 @@ class TransactionEventHandler(EventHandler):
                 return True
 
         except TransactionValidationRuleBrokenException as e:
-            logging.info(f'{e.transaction} failed rule {e.rule}!')
+            e.rule.send_alert_for_transaction(e.transaction)
+
+            # Commit offset
             return True
 
     def __str__(self):

@@ -1,6 +1,7 @@
 
 # core python
 from dataclasses import dataclass, field
+import logging
 from typing import Any, List
 
 # native
@@ -15,6 +16,7 @@ class TransactionValidator:
 
     def validate(self, transaction: Transaction):
         for rule in self.rules:
+            logging.info(f'Checking rule {rule}')
             if rule.is_broken(transaction):
                 raise TransactionValidationRuleBrokenException(rule, transaction)
 

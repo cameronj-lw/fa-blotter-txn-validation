@@ -6,7 +6,8 @@ import os
 import socket
 
 # native
-from domain.models import Heartbeat
+from domain.models import Heartbeat, Blotter, BlotterTradeSettlementCriteria, BlotterType, BlotterSendStatus
+from infrastructure.util.config import AppConfig
 from infrastructure.util.date import format_time
 from infrastructure.util.logging import get_log_file_full_path
 
@@ -59,3 +60,34 @@ class MGMTDBHeartbeat(Heartbeat):
             return hb
         except KeyError as e:
             raise InvalidDictError(f"Missing required field: {e}")
+
+
+@dataclass
+class FABlotterV1BlotterFile(Blotter):
+
+    def file_full_path(self) -> str:
+
+        if self.trade_date is None:
+            self.trade_date = datetime.date.today()
+                
+        base_dir = AppConfig().get('files', 'bona_notification_dir')
+
+        if self.settlement_criteria == BlotterTradeSettlementCriteria.t_plus_zero:
+            if self.type_ == BlotterType.regular:
+                return os.path.join(base_dir, self.trade_date.strftime('%Y%m'), self.trade_date.strftime('%d'), 'BLOTTER', 
+                                    f"CIBCLWMutualFundAcctSameDaySettlement_{self.trade_date.strftime('%Y%m%d')}.xlsx")
+            elif self.type_ == BlotterType.amendment:
+                pass  # TODO: need this?
+        elif self.settlement_criteria == BlotterTradeSettlementCriteria.t_plus_one:
+            if self.type_ == BlotterType.regular:
+                return os.path.join(base_dir, self.trade_date.strftime('%Y%m'), self.trade_date.strftime('%d'), 'BLOTTER', 
+                                    f"CIBCLWMutualFundAcct_{self.trade_date.strftime('%Y%m%d')}.xlsx")
+            elif self.type_ == BlotterType.amendment:
+                # TODO: correctly implement
+                return os.path.join(base_dir, self.trade_date.strftime('%Y%m'), self.trade_date.strftime('%d'), 'BLOTTER', 
+                                    f"CIBCLWMutualFundAcct_{self.trade_date.strftime('%Y%m%d')}.xlsx")
+        
+
+    def __str__(self):
+        return f"{super().__str__()}   \n{self.file_full_path()}"
+

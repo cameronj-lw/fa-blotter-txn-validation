@@ -4,12 +4,82 @@ import datetime
 import logging
 from typing import List, Union
 
-# native
-from domain.models import Heartbeat
-from domain.repositories import HeartbeatRepository
-from infrastructure.models import MGMTDBHeartbeat
-from infrastructure.sql_tables import MGMTDBMonitorTable
+# pypi
+import pandas as pd
 
+# native
+from domain.models import Heartbeat, Transaction
+from domain.repositories import HeartbeatRepository, TransactionRepository
+from infrastructure.models import MGMTDBHeartbeat
+from infrastructure.sql_tables import MGMTDBMonitorTable, LWDBNotificationTable, APXDBvPortfolioTransactionView, APXDBvPortfolioTransactionLWFundsView
+
+
+
+""" LWDB """
+
+class LWDBBONASentTransactionRepository(TransactionRepository):
+    table = LWDBNotificationTable()
+
+    def create(self, transaction: Transaction) -> int:
+        raise NotImplementedError("Cannot write to {self.cn}")
+
+    def get(self, trade_date: Union[datetime.date,None]=None, portfolio_code: Union[str,None]=None) -> List[Transaction]:
+        query_result = pd.concat([
+            self.table.read(scenario='CUSTODIAN.PRIMARY', status='Sent', trade_date=trade_date, portfolio_code=portfolio_code),
+            self.table.read(scenario='SSCNET.PRIMARY', status='Sent', trade_date=trade_date, portfolio_code=portfolio_code),
+        ])
+        # TODO: filter for transactions in LW Fund portfolios only
+        # query_result = self.table.read(scenario='CUSTODIAN.PRIMARY', status='Sent', trade_date=trade_date, portfolio_code=portfolio_code)
+        
+        # Convert to dict:
+        query_result_dicts = query_result.to_dict('records')
+
+        transactions = [Transaction(**qrd) for qrd in query_result_dicts]
+        return transactions
+        
+    def __str__(self):
+        return 'Transactions sent via BONA gateway'
+
+
+""" APXDB """
+
+class APXDBTransactionRepository(TransactionRepository):
+    table = APXDBvPortfolioTransactionLWFundsView()
+
+    def create(self, transaction: Transaction) -> int:
+        raise NotImplementedError("Cannot write to {self.cn}")
+
+    def get(self, trade_date: Union[datetime.date,None]=None, portfolio_code: Union[str,None]=None) -> List[Transaction]:
+        query_result = self.table.read(trade_date=trade_date)
+        
+        # Convert to dict:
+        query_result_dicts = query_result.to_dict('records')
+
+        transactions = [Transaction(**qrd) for qrd in query_result_dicts]
+        return transactions
+        
+    def __str__(self):
+        return 'Transactions posted to APX'
+
+
+class APXDBFABlotterV2Repository(TransactionRepository):
+    # TODO: change this class to pull from FA Blotter v2 view
+    table = APXDBvPortfolioTransactionLWFundsView()
+
+    def create(self, transaction: Transaction) -> int:
+        raise NotImplementedError("Cannot write to {self.cn}")
+
+    def get(self, trade_date: Union[datetime.date,None]=None, portfolio_code: Union[str,None]=None) -> List[Transaction]:
+        query_result = self.table.read(trade_date=trade_date)
+        
+        # Convert to dict:
+        query_result_dicts = query_result.to_dict('records')
+
+        transactions = [Transaction(**qrd) for qrd in query_result_dicts]
+        return transactions
+        
+    def __str__(self):
+        return 'Transactions slated for FA Blotter v2'
 
 
 """ MGMTDB """
@@ -38,7 +108,7 @@ class MGMTDBHeartbeatRepository(HeartbeatRepository):
 
         # Bulk insert new rows:
         logging.debug(f"{self.cn}: About to upsert {hb_dict}")
-        res = self.table.upsert(pk_column_name=pk_columns, data=hb_dict)  # TODO: error handling?
+        res = self.table.upsert(pk_column_name=pk_columns, data=hb_dict)  # TODO_EH: error handling?
         if isinstance(res, int):
             row_cnt = res
         else:

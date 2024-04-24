@@ -11,9 +11,70 @@ from infrastructure.util.table import BaseTable, ScenarioTable
 
 
 
-"""
-MGMTDB
-"""
+""" LWDB """
+
+class LWDBNotificationTable(ScenarioTable):
+	config_section = 'lwdb'
+	table_name = 'notification'
+
+	def read(self, scenario=None, status=None, data_date=None, trade_date=None, portfolio_code=None, lw_id=None):
+		"""
+		Read all entries, optionally with criteria
+
+		:return: DataFrame
+		"""
+		stmt = sql.select(self.table_def)
+		stmt = stmt.where(self.c.scenario == (scenario or self.base_scenario))
+		if status is not None:
+			stmt = stmt.where(self.c.status == status)
+		if data_date is not None:
+			stmt = stmt.where(self.c.data_dt == data_date)
+		if trade_date is not None:
+			stmt = stmt.where(self.c.TradeDate == trade_date)
+		if portfolio_code is not None:
+			stmt = stmt.where(self.c.PortfolioCode == portfolio_code)
+		if lw_id is not None:
+			stmt = stmt.where(self.c.ProprietarySymbol == lw_id)
+		return self.execute_read(stmt)
+
+
+
+""" APXDB """
+
+class APXDBvPortfolioTransactionView(BaseTable):
+	config_section = 'apxdb'
+	schema = 'AdvApp'
+	table_name = 'vPortfolioTransaction'
+
+	def read(self, trade_date=None):
+		"""
+		Read all entries, optionally with criteria
+
+		:return: DataFrame
+		"""
+		stmt = sql.select(self.table_def)
+		if trade_date is not None:
+			stmt = stmt.where(self.c.TradeDate == trade_date)
+		return self.execute_read(stmt)
+
+class APXDBvPortfolioTransactionLWFundsView(BaseTable):
+	config_section = 'apxdb_lwp'
+	table_name = 'vPortfolioTransaction_LW_Funds'
+
+	def read(self, trade_date=None):
+		"""
+		Read all entries, optionally with criteria
+
+		:return: DataFrame
+		"""
+		stmt = sql.select(self.table_def)
+		if trade_date is not None:
+			stmt = stmt.where(self.c.TradeDate == trade_date)
+		return self.execute_read(stmt)
+
+
+
+""" MGMTDB """
 
 class MGMTDBMonitorTable(ScenarioTable):
 	config_section = 'mgmtdb'

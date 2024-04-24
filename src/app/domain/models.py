@@ -2,7 +2,9 @@
 # core python
 from dataclasses import dataclass, field
 import datetime
+from enum import Enum
 from types import SimpleNamespace
+from typing import Literal
 
 
 class Transaction(SimpleNamespace):
@@ -23,6 +25,29 @@ class TransactionComment(SimpleNamespace):
 
     def __str__(self):
         return f"Comment in {self.PortfolioID} on {self.TradeDate}: {self.Comment}"
+
+
+BlotterTradeSettlementCriteria = Enum('BlotterTradeSettlementCriteria', 't_plus_zero t_plus_one')
+BlotterType = Enum('BlotterType', 'regular amendment adhoc')
+BlotterSendStatus = Enum('BlotterSendStatus', 'IN_PROGRESS SUCCESS FAIL UNKNOWN')
+
+@dataclass
+class Blotter:
+    """ Blotter which can optionally specify a batch of transactions """
+    settlement_criteria: BlotterTradeSettlementCriteria
+    type_: BlotterType
+    trade_date: datetime.date = field(default_factory=datetime.date.today)
+    status: BlotterSendStatus = BlotterSendStatus.UNKNOWN
+    modified_at: datetime.datetime = field(default_factory=datetime.datetime.now)
+    transactions: list[Transaction] = field(default_factory=list)
+
+    @property
+    def cn(self):  # Class name. Avoids having to print/log type(self).__name__.
+        return type(self).__name__
+
+    def __str__(self):
+        settlement_criteria_str = 'T+1' if self.settlement_criteria == BlotterTradeSettlementCriteria.t_plus_one else 'T+0'
+        return f"{self.trade_date} {settlement_criteria_str} {self.type_.name} blotter: {self.status.name} as of {self.modified_at.strftime('%Y-%m-%d %H:%M:%S')}"
 
 
 @dataclass
@@ -65,4 +90,10 @@ class Heartbeat:
             return cls(group=group, name=name, data_date=data_date, modified_at=modified_at)
         except KeyError as e:
             raise InvalidDictError(f"Missing required field: {e}")
+
+
+@dataclass
+class Alert:
+    title: str
+    body: str
 
